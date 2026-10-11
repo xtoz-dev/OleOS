@@ -119,7 +119,7 @@ function userPayload(user) {
   if (!user) return null
   const avatar = user.avatarHash
     ? `https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatarHash}.png?size=128`
-    : `https://cdn.discordapp.com/embed/avatars/${Number(BigInt(user.discordId) >> 22n) % 6}.png`
+    : `https://cdn.discordapp.com/embed/avatars/${/^\d{17,20}$/.test(user.discordId) ? Number(BigInt(user.discordId) >> 22n) % 6 : 0}.png`
   return { id: user.id, discordId: user.discordId, username: user.username, displayName: user.displayName, avatar, desktopColor: user.desktopColor, theme: user.theme, isAdmin: adminIds.has(user.discordId) }
 }
 const presence = new Map()
@@ -142,7 +142,7 @@ function sessionCall(req, action) {
   return new Promise((resolve, reject) => req.session[action](error => error ? reject(error) : resolve()))
 }
 
-app.get('/api/health', (_req, res) => res.json({ ok: true, discordConfigured: Boolean(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET && (process.env.DISCORD_REDIRECT_URI || appOrigin.startsWith('https://'))) }))
+app.get('/api/health', (_req, res) => res.json({ ok: true, discordConfigured: Boolean(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET && (process.env.DISCORD_REDIRECT_URI || appOrigin.startsWith('https://'))), testLoginConfigured: Boolean(process.env.TEST_LOGIN_SECRET && Buffer.byteLength(process.env.TEST_LOGIN_SECRET) >= 32) }))
 app.get('/api/auth/me', async (req, res, next) => {
   try {
     if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex')
@@ -168,6 +168,30 @@ app.get('/api/auth/discord', authLimiter, (req, res) => {
     authorize.searchParams.set('state', state)
     res.redirect(authorize.toString())
   })
+})
+
+const testLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-8', legacyHeaders: false, message: { error: 'Zu viele Test-Anmeldeversuche. Bitte später erneut versuchen.' } })
+app.post('/api/auth/test', testLoginLimiter, sameOrigin, requireCsrf, async (req, res, next) => {
+  const configuredSecret = process.env.TEST_LOGIN_SECRET
+  if (!configuredSecret || Buffer.byteLength(configuredSecret) < 32) return res.status(404).json({ error: 'Testzugang ist nicht aktiviert.' })
+  const parsed = z.object({ account: z.enum(['tester-a', 'tester-b']), secret: z.string().min(1).max(256) }).strict().safeParse(req.body)
+  if (!parsed.success) return res.status(400).json({ error: 'Bitte Testkonto und Zugangsschlüssel prüfen.' })
+  const submitted = Buffer.from(parsed.data.secret)
+  const expected = Buffer.from(configuredSecret)
+  if (submitted.length !== expected.length || !crypto.timingSafeEqual(submitted, expected)) return res.status(401).json({ error: 'Der Test-Zugangsschlüssel ist falsch.' })
+  try {
+    const accounts = {
+      'tester-a': { discordId: 'oleos-test-a', username: 'tester.alfa', displayName: 'Testkonto Alfa' },
+      'tester-b': { discordId: 'oleos-test-b', username: 'tester.beta', displayName: 'Testkonto Beta' },
+    }
+    const account = accounts[parsed.data.account]
+    const user = await prisma.user.upsert({ where: { discordId: account.discordId }, create: account, update: {} })
+    await sessionCall(req, 'regenerate')
+    req.session.userId = user.id
+    req.session.csrfToken = crypto.randomBytes(32).toString('hex')
+    await sessionCall(req, 'save')
+    res.set('Cache-Control', 'no-store').json({ user: userPayload(user), csrfToken: req.session.csrfToken })
+  } catch (error) { next(error) }
 })
 
 app.get('/api/auth/discord/callback', authLimiter, async (req, res) => {

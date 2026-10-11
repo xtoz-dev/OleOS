@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Battery, ChevronRight, Computer, FileText, Folder, HardDrive, HelpCircle, Image, LogOut, Mail as MailIcon, MessageCircle as ChatIcon, Minus, MinusSquare, Monitor, Power, Search, Settings, Shield, Trash2, Volume2, VolumeX, Wifi, X } from 'lucide-react'
 import { playSystemSound, type SoundKind } from './audio'
 import { MessageCircle } from 'lucide-react'
@@ -28,6 +28,31 @@ function AppIcon({ id, size = 20 }: { id: AppId; size?: number }) {
   return <HelpCircle {...props} />
 }
 
+function TestLoginForm({ csrfToken, onError, onLogin }: { csrfToken: string; onError: (message: string) => void; onLogin: (user: Profile, csrfToken: string) => void }) {
+  const [account, setAccount] = useState<'tester-a' | 'tester-b'>('tester-a')
+  const [secret, setSecret] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!csrfToken || busy) return
+    setBusy(true); onError('')
+    try {
+      const response = await fetch('/api/auth/test', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify({ account, secret }) })
+      const data = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(data?.error || 'Test-Anmeldung fehlgeschlagen.')
+      setSecret(''); onLogin(data.user, data.csrfToken)
+    } catch (error) { onError(error instanceof Error ? error.message : 'Test-Anmeldung fehlgeschlagen.') }
+    finally { setBusy(false) }
+  }
+  return <form className="test-login-form" onSubmit={submit}>
+    <div className="test-login-heading"><Shield size={15}/><b>Mail testen</b></div>
+    <label>Testkonto<select value={account} onChange={event => setAccount(event.target.value as 'tester-a' | 'tester-b')}><option value="tester-a">Testkonto Alfa</option><option value="tester-b">Testkonto Beta</option></select></label>
+    <label>Test-Zugangsschlüssel<input type="password" value={secret} onChange={event => setSecret(event.target.value)} autoComplete="current-password" required maxLength={256}/></label>
+    <button className="test-login-submit" type="submit" disabled={busy || !csrfToken}>{busy ? 'Anmeldung …' : 'Als Testkonto anmelden'}</button>
+    <small>Mit Alfa und Beta kannst du Nachrichten zwischen zwei Postfächern testen.</small>
+  </form>
+}
+
 export default function App() {
   const [booting, setBooting] = useState(true)
   const [bootProgress, setBootProgress] = useState(0)
@@ -35,6 +60,7 @@ export default function App() {
   const [user, setUser] = useState<Profile | null>(null)
   const [csrfToken, setCsrfToken] = useState('')
   const [discordConfigured, setDiscordConfigured] = useState(true)
+  const [testLoginConfigured, setTestLoginConfigured] = useState(false)
   const [authError, setAuthError] = useState('')
   const [startOpen, setStartOpen] = useState(false)
   const [windows, setWindows] = useState<Win[]>([])
@@ -60,6 +86,7 @@ export default function App() {
       setUser(sessionData.user)
       setCsrfToken(sessionData.csrfToken || '')
       setDiscordConfigured(Boolean(healthData.discordConfigured))
+      setTestLoginConfigured(Boolean(healthData.testLoginConfigured))
       if (new URLSearchParams(window.location.search).get('auth') === 'error') {
         setAuthError('Die Discord-Anmeldung ist fehlgeschlagen. Bitte versuche es erneut.')
         window.history.replaceState({}, '', window.location.pathname)
@@ -127,7 +154,7 @@ export default function App() {
   if (booting) return <main className="boot-screen"><div className="boot-card"><div className="boot-brand"><span className="brand-mark">O</span><div><b>OleOS</b><small>Persönlicher Desktop</small></div></div><div className="boot-rule"/><div className="boot-status">OleOS wird gestartet<span className="dots">...</span><button className="boot-sound" onClick={() => playSystemSound('boot', volume / 100, soundEnabled)}>♫ Bootmelodie anhören</button></div><div className="progress"><span style={{ width: `${bootProgress}%` }}/></div><div className="boot-foot"><span>Ein Moment für dich.</span><span>{bootProgress}%</span></div></div><div className="boot-version">OleOS 95 · Build 1995.11</div></main>
 
   if (authLoading) return <main className="login-screen"><div className="login-card login-loading"><span className="brand-mark">O</span><b>OleOS wird vorbereitet…</b><div className="progress"><span style={{width: '70%'}}/></div></div></main>
-  if (!user) return <main className="login-screen"><div className="login-card"><div className="login-brand"><span className="brand-mark">O</span><div><b>OleOS</b><small>Willkommen zurück.</small></div></div><div className="login-divider"/><h1>Bei OleOS anmelden</h1><p className="login-description">Dein Desktop und deine Community warten auf dich.</p>{authError && <div className="login-error">{authError}</div>}{!discordConfigured && <div className="login-notice">Discord OAuth ist noch nicht konfiguriert. Ergänze Client-ID und Secret in der <code>.env</code>-Datei und richte die Redirect-URI ein. Die Anleitung steht in der README.</div>}<a className={`discord-login ${!discordConfigured ? 'disabled' : ''}`} href={discordConfigured ? '/api/auth/discord' : undefined} aria-disabled={!discordConfigured}><MessageCircle size={18}/><span>Mit Discord anmelden</span><ChevronRight size={16}/></a><div className="login-footer"><Shield size={14}/> Sichere Anmeldung über Discord OAuth2</div></div><div className="login-build">OleOS 95 · Build 1995.11</div></main>
+  if (!user) return <main className="login-screen"><div className="login-card"><div className="login-brand"><span className="brand-mark">O</span><div><b>OleOS</b><small>Willkommen zurück.</small></div></div><div className="login-divider"/><h1>Bei OleOS anmelden</h1><p className="login-description">Dein Desktop und deine Community warten auf dich.</p>{authError && <div className="login-error">{authError}</div>}{!discordConfigured && <div className="login-notice">Discord OAuth ist noch nicht konfiguriert. Ergänze Client-ID und Secret in der <code>.env</code>-Datei und richte die Redirect-URI ein. Die Anleitung steht in der README.</div>}<a className={`discord-login ${!discordConfigured ? 'disabled' : ''}`} href={discordConfigured ? '/api/auth/discord' : undefined} aria-disabled={!discordConfigured}><MessageCircle size={18}/><span>Mit Discord anmelden</span><ChevronRight size={16}/></a>{testLoginConfigured && <TestLoginForm csrfToken={csrfToken} onError={setAuthError} onLogin={(nextUser, nextToken) => { setUser(nextUser); setCsrfToken(nextToken) }}/>}<div className="login-footer"><Shield size={14}/> Sichere Anmeldung über Discord OAuth2</div></div><div className="login-build">OleOS 95 · Build 1995.11</div></main>
 
   return <main className="desktop" style={{ backgroundColor: user.desktopColor || '#087d7e' }} onMouseDown={() => { setStartOpen(false); setContext(null) }} onClickCapture={e => { if ((e.target as HTMLElement).closest('[data-silent]')) return; play('click') }} onContextMenu={e => { if ((e.target as HTMLElement).closest('.window, .taskbar, .desktop-icon, .start-menu')) return; e.preventDefault(); setContext({ x: e.clientX, y: e.clientY }) }} onClick={e => { if (e.target === e.currentTarget) setSelected(null) }}>
     <div className="desktop-grain" />

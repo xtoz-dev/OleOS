@@ -103,6 +103,8 @@ Unter **Start → OleOS Mail** kannst du anderen registrierten OleOS-Nutzern ein
 
 Für Moderationsrechte trägst du in `.env` unter `ADMIN_DISCORD_IDS` eine kommaseparierte Liste der Discord-User-IDs ein. Moderatoren können Chatnachrichten entfernen, Nutzer zeitweise stummschalten sowie sperren und entsperren. Lege die IDs nur serverseitig ab. Räume, Nachrichten, Freigaben und Moderationssperren werden in SQLite oder der konfigurierten Turso-Datenbank gespeichert.
 
+Zum Testen von OleOS Mail kannst du optional `TEST_LOGIN_SECRET` auf mindestens 32 zufällige Zeichen setzen. Dann erscheinen auf der Anmeldeseite die Testkonten Alfa und Beta. Beide nutzen denselben Zugangsschlüssel, sind getrennte OleOS-Profile und erhalten keine Moderationsrechte. Melde dich ab und wechsle zwischen den Profilen, um Nachrichten zwischen zwei Postfächern zu testen. Den Schlüssel ausschließlich als geheime Server-Umgebungsvariable (zum Beispiel in Render) speichern und danach neu deployen. Ohne gesetzten Schlüssel ist der Testzugang deaktiviert.
+
 ## Kostenloses öffentliches Hosting mit GitHub, Render und Turso
 
 GitHub Pages allein reicht nicht: Es veröffentlicht statische Dateien, führt aber weder Express/Socket.IO noch Discord OAuth aus. `render.yaml` stellt OleOS deshalb als kostenlosen Render-Webservice bereit. Render Free kann den Dienst nach Inaktivität schlafen legen; der erste Aufruf danach kann verzögert sein. Weil der kostenlose Container kein dauerhaftes Dateisystem hat, wird für Livebetrieb Turso als persistente Datenbank verwendet. Lokal bleibt SQLite aktiv.
