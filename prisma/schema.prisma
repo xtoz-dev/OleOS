@@ -18,6 +18,8 @@ model User {
   desktopColor String     @default("#087d7e")
   theme        String     @default("classic")
   files        FileEntry[]
+  sentMail     MailMessage[] @relation("MailSender")
+  receivedMail MailMessage[] @relation("MailRecipient")
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -88,4 +90,21 @@ model UserRestriction {
   bannedAt  DateTime?
   reason    String?
   updatedAt DateTime @updatedAt
+}
+
+model MailMessage {
+  id                 String   @id @default(cuid())
+  senderId           String
+  sender             User     @relation("MailSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId        String
+  recipient          User     @relation("MailRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  subject            String
+  body               String
+  readAt             DateTime?
+  senderDeletedAt    DateTime?
+  recipientDeletedAt DateTime?
+  createdAt          DateTime @default(now())
+
+  @@index([recipientId, recipientDeletedAt, createdAt])
+  @@index([senderId, senderDeletedAt, createdAt])
 }

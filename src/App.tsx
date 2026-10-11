@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Battery, ChevronRight, Computer, FileText, Folder, HardDrive, HelpCircle, Image, LogOut, MessageCircle as ChatIcon, Minus, MinusSquare, Monitor, Power, Search, Settings, Shield, Trash2, Volume2, VolumeX, Wifi, X } from 'lucide-react'
+import { Battery, ChevronRight, Computer, FileText, Folder, HardDrive, HelpCircle, Image, LogOut, Mail as MailIcon, MessageCircle as ChatIcon, Minus, MinusSquare, Monitor, Power, Search, Settings, Shield, Trash2, Volume2, VolumeX, Wifi, X } from 'lucide-react'
 import { playSystemSound, type SoundKind } from './audio'
 import { MessageCircle } from 'lucide-react'
 import { ExplorerApp, NotepadApp, ProfileSettings, RecycleApp, type Profile } from './programs'
 import { NetworkApp, OleChat } from './social'
+import { MailApp } from './mail'
 
-type AppId = 'computer' | 'files' | 'recycle' | 'network' | 'chat' | 'notepad' | 'paint' | 'settings' | 'about'
+type AppId = 'computer' | 'files' | 'recycle' | 'network' | 'chat' | 'mail' | 'notepad' | 'paint' | 'settings' | 'about'
 type Win = { id: number; app: AppId; title: string; fileId?: string; x: number; y: number; w: number; h: number; z: number; minimized: boolean; maximized: boolean }
 const desktopApps: { id: AppId; label: string; icon: string }[] = [
   { id: 'computer', label: 'Arbeitsplatz', icon: '🖥️' }, { id: 'recycle', label: 'Papierkorb', icon: '🗑️' },
-  { id: 'network', label: 'Netzwerkumgebung', icon: '🌐' }, { id: 'chat', label: 'OleChat', icon: '💬' }, { id: 'files', label: 'Eigene Dateien', icon: '📁' },
+  { id: 'network', label: 'Netzwerkumgebung', icon: '🌐' }, { id: 'chat', label: 'OleChat', icon: '💬' }, { id: 'mail', label: 'OleOS Mail', icon: '✉️' }, { id: 'files', label: 'Eigene Dateien', icon: '📁' },
 ]
-const names: Record<AppId, string> = { computer: 'Arbeitsplatz', files: 'Eigene Dateien', recycle: 'Papierkorb', network: 'Netzwerkumgebung', chat: 'OleChat', notepad: 'Editor', paint: 'Paint', settings: 'Einstellungen', about: 'Über OleOS' }
+const names: Record<AppId, string> = { computer: 'Arbeitsplatz', files: 'Eigene Dateien', recycle: 'Papierkorb', network: 'Netzwerkumgebung', chat: 'OleChat', mail: 'OleOS Mail', notepad: 'Editor', paint: 'Paint', settings: 'Einstellungen', about: 'Über OleOS' }
 
 function AppIcon({ id, size = 20 }: { id: AppId; size?: number }) {
   const props = { size, strokeWidth: 1.7 }
@@ -20,6 +21,7 @@ function AppIcon({ id, size = 20 }: { id: AppId; size?: number }) {
   if (id === 'recycle') return <Trash2 {...props} />
   if (id === 'network') return <Wifi {...props} />
   if (id === 'chat') return <ChatIcon {...props} />
+  if (id === 'mail') return <MailIcon {...props} />
   if (id === 'notepad') return <FileText {...props} />
   if (id === 'paint') return <Image {...props} />
   if (id === 'settings') return <Settings {...props} />
@@ -96,7 +98,7 @@ export default function App() {
     playSystemSound('open', volume / 100, soundEnabled)
     const id = nextId.current++
     setTopZ(z => z + 1)
-    setWindows(ws => [...ws, { id, app, title: names[app], fileId, x: 100 + (ws.length % 7) * 32, y: 48 + (ws.length % 7) * 26, w: app === 'computer' ? 610 : 520, h: app === 'computer' ? 410 : 340, z: topZ + 1, minimized: false, maximized: false }])
+    setWindows(ws => [...ws, { id, app, title: names[app], fileId, x: 100 + (ws.length % 7) * 32, y: 48 + (ws.length % 7) * 26, w: app === 'computer' ? 610 : app === 'mail' ? 760 : 520, h: app === 'computer' ? 410 : app === 'mail' ? 480 : 340, z: topZ + 1, minimized: false, maximized: false }])
     setStartOpen(false); setContext(null)
   }, [topZ, volume, soundEnabled])
   const focus = (id: number) => { setTopZ(z => z + 1); setWindows(ws => ws.map(w => w.id === id ? { ...w, z: topZ + 1, minimized: false } : w)) }
@@ -140,7 +142,7 @@ export default function App() {
     </section>)}
 
     {context && <div className="context-menu" style={{ left: context.x, top: context.y }} onMouseDown={e => e.stopPropagation()}>{[['Ansicht', Monitor], ['Aktualisieren', Search], ['Neu', FileText], ['Eigenschaften', Settings]].map(([label, Icon]) => <button key={label as string} onClick={() => setContext(null)}><Icon size={14}/>{label as string}</button>)}</div>}
-    {startOpen && <div className="start-menu" onMouseDown={e => e.stopPropagation()}><div className="start-vertical"><b>OleOS</b><small>DESKTOP</small></div><div className="start-items"><button onClick={() => openApp('computer')}><AppIcon id="computer"/>Arbeitsplatz</button><button onClick={() => openApp('files')}><AppIcon id="files"/>Eigene Dateien</button><button onClick={() => openApp('network')}><AppIcon id="network"/>Netzwerkumgebung</button><button onClick={() => openApp('chat')}><AppIcon id="chat"/>OleChat</button><div className="start-divider"/><button onClick={() => openApp('notepad')}><AppIcon id="notepad"/>Editor</button><button onClick={() => openApp('paint')}><AppIcon id="paint"/>Paint</button><button onClick={() => openApp('settings')}><AppIcon id="settings"/>Einstellungen <ChevronRight size={14} className="end-icon"/></button><button onClick={() => openApp('about')}><AppIcon id="about"/>Über OleOS</button><div className="start-divider"/><button onClick={logout}><LogOut size={18}/>Benutzer wechseln</button><button onClick={logout}><Power size={18}/>Abmelden</button></div></div>}
+    {startOpen && <div className="start-menu" onMouseDown={e => e.stopPropagation()}><div className="start-vertical"><b>OleOS</b><small>DESKTOP</small></div><div className="start-items"><button onClick={() => openApp('computer')}><AppIcon id="computer"/>Arbeitsplatz</button><button onClick={() => openApp('files')}><AppIcon id="files"/>Eigene Dateien</button><button onClick={() => openApp('network')}><AppIcon id="network"/>Netzwerkumgebung</button><button onClick={() => openApp('chat')}><AppIcon id="chat"/>OleChat</button><button onClick={() => openApp('mail')}><AppIcon id="mail"/>OleOS Mail</button><div className="start-divider"/><button onClick={() => openApp('notepad')}><AppIcon id="notepad"/>Editor</button><button onClick={() => openApp('paint')}><AppIcon id="paint"/>Paint</button><button onClick={() => openApp('settings')}><AppIcon id="settings"/>Einstellungen <ChevronRight size={14} className="end-icon"/></button><button onClick={() => openApp('about')}><AppIcon id="about"/>Über OleOS</button><div className="start-divider"/><button onClick={logout}><LogOut size={18}/>Benutzer wechseln</button><button onClick={logout}><Power size={18}/>Abmelden</button></div></div>}
     <footer className="taskbar" onMouseDown={e => e.stopPropagation()}><button className={`start-button ${startOpen ? 'pressed' : ''}`} onClick={() => setStartOpen(v => !v)}><span className="mini-brand">O</span><b>Start</b></button><div className="task-separator"/><div className="quicklaunch"><button title="Arbeitsplatz" onClick={() => openApp('computer')}><Computer size={17}/></button><button title="Editor" onClick={() => openApp('notepad')}><FileText size={16}/></button></div><div className="task-separator"/><div className="task-buttons">{windows.map(w => <button key={w.id} className={`task-button ${!w.minimized ? 'active' : ''}`} onClick={() => w.minimized ? update(w.id, { minimized: false }) : update(w.id, { minimized: true })}><AppIcon id={w.app} size={14}/><span>{w.title}</span></button>)}</div><div className="task-user"><img src={user.avatar} alt=""/><span>{user.displayName}</span></div><div className="system-tray"><span className="tray-signal"><Wifi size={14}/></span><span className="tray-dot"><Battery size={14}/></span><button className="volume-button" aria-label={soundEnabled && volume > 0 ? 'Lautstärke' : 'Stumm'} onClick={() => setVolumeOpen(v => !v)}>{soundEnabled && volume > 0 ? <Volume2 size={15}/> : <VolumeX size={15}/>}</button><span className="clock">{clock.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}<small>{clock.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })}</small></span></div>{volumeOpen && <div className="volume-panel" onMouseDown={e => e.stopPropagation()}><div className="volume-heading"><Volume2 size={15}/><b>Lautstärke</b><span>{volume}%</span></div><input aria-label="Lautstärke" type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))}/><label><input type="checkbox" checked={!soundEnabled} onChange={e => setSoundEnabled(!e.target.checked)}/> Stumm</label><button onClick={() => playSystemSound('notify', volume / 100, soundEnabled)}>Sound testen</button></div>}</footer>
   </main>
 }
@@ -151,6 +153,7 @@ function AppContents({ app, onOpen, initialFileId, user, onUserChange, csrfToken
   if (app === 'recycle') return <RecycleApp csrfToken={csrfToken}/>
   if (app === 'network') return <NetworkApp csrfToken={csrfToken} user={user}/>
   if (app === 'chat') return <OleChat csrfToken={csrfToken} user={user} play={play}/>
+  if (app === 'mail') return <MailApp csrfToken={csrfToken} userId={user.id}/>
   if (app === 'settings') return <div className="settings-content"><ProfileSettings csrfToken={csrfToken} user={user} onUserChange={onUserChange}/><div className="sound-settings"><div className="sound-settings-heading"><Volume2 size={18}/><div><b>Systemsounds</b><small>Melodien werden direkt im Browser erzeugt.</small></div></div><label className="sound-toggle"><input type="checkbox" checked={soundEnabled} onChange={e => setSoundEnabled(e.target.checked)}/> Systemsounds aktivieren</label><label className="sound-toggle"><input type="checkbox" checked={notificationSounds} onChange={e => setNotificationSounds(e.target.checked)}/> Benachrichtigungen vertonen</label><label className="volume-setting">Lautstärke <span>{volume}%</span><input type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))} disabled={!soundEnabled}/></label><div className="sound-samples">{([['open','Fenster'],['notify','Hinweis'],['error','Fehler']] as [SoundKind,string][]).map(([kind,label])=><button key={kind} onClick={() => play(kind)} disabled={!soundEnabled || (kind === 'notify' && !notificationSounds)}>{label} testen</button>)}</div></div></div>
   if (app === 'notepad') return <NotepadApp csrfToken={csrfToken} initialFileId={initialFileId}/>
   if (app === 'paint') return <div className="paint-content"><div className="paint-tools"><span>Werkzeuge</span>{['✥','✎','▰','▱','◯','╱'].map((icon,i) => <button key={i}>{icon}</button>)}<span>Farben</span>{['#101820','#ec6a4b','#e1b44c','#4d8c74','#5498bc','#eee5d6'].map(c=><button key={c} className="color-swatch" style={{background:c}} aria-label={`Farbe ${c}`}/>)}</div><canvas width={580} height={280} className="paint-canvas"/></div>

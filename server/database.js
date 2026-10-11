@@ -19,6 +19,9 @@ export async function initializeDatabase(prisma) {
   await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "SharedFile_recipientId_createdAt_idx" ON "SharedFile"("recipientId", "createdAt")')
   await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "UserRestriction" ("id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "mutedUntil" DATETIME, "bannedAt" DATETIME, "reason" TEXT, "updatedAt" DATETIME NOT NULL)`)
   await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "UserRestriction_userId_key" ON "UserRestriction"("userId")')
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "MailMessage" ("id" TEXT NOT NULL PRIMARY KEY, "senderId" TEXT NOT NULL, "recipientId" TEXT NOT NULL, "subject" TEXT NOT NULL, "body" TEXT NOT NULL, "readAt" DATETIME, "senderDeletedAt" DATETIME, "recipientDeletedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "MailMessage_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "MailMessage_recipientId_fkey" FOREIGN KEY ("recipientId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`)
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "MailMessage_recipientId_recipientDeletedAt_createdAt_idx" ON "MailMessage"("recipientId", "recipientDeletedAt", "createdAt")')
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "MailMessage_senderId_senderDeletedAt_createdAt_idx" ON "MailMessage"("senderId", "senderDeletedAt", "createdAt")')
   for (const [id, name] of [['room-general', 'Allgemein'], ['room-lounge', 'Lounge'], ['room-help', 'Hilfe']]) {
     await prisma.$executeRawUnsafe('INSERT OR IGNORE INTO "ChatRoom" ("id", "name", "createdAt") VALUES (?, ?, CURRENT_TIMESTAMP)', id, name)
   }

@@ -251,6 +251,57 @@ function requireAdmin(req, res, next) {
 app.get('/api/social/rooms', requireLogin, async (_req, res, next) => {
   try { res.json({ rooms: await prisma.chatRoom.findMany({ orderBy: { createdAt: 'asc' }, select: { id: true, name: true } }) }) } catch (error) { next(error) }
 })
+const mailUserSelect = { id: true, discordId: true, username: true, displayName: true, avatarHash: true, desktopColor: true, theme: true }
+const mailInclude = { sender: { select: mailUserSelect }, recipient: { select: mailUserSelect } }
+function mailPayload(message) {
+  return { id: message.id, subject: message.subject, body: message.body, readAt: message.readAt, createdAt: message.createdAt, sender: userPayload(message.sender), recipient: userPayload(message.recipient) }
+}
+app.get('/api/mail', requireLogin, async (req, res, next) => {
+  try {
+    const folder = req.query.folder === 'sent' ? 'sent' : 'inbox'
+    const where = folder === 'sent'
+      ? { senderId: req.session.userId, senderDeletedAt: null }
+      : { recipientId: req.session.userId, recipientDeletedAt: null }
+    const [messages, unreadCount] = await Promise.all([
+      prisma.mailMessage.findMany({ where, include: mailInclude, orderBy: { createdAt: 'desc' }, take: 100 }),
+      prisma.mailMessage.count({ where: { recipientId: req.session.userId, recipientDeletedAt: null, readAt: null } }),
+    ])
+    res.set('Cache-Control', 'no-store').json({ messages: messages.map(mailPayload), unreadCount })
+  } catch (error) { next(error) }
+})
+app.post('/api/mail', sameOrigin, requireCsrf, requireLogin, async (req, res, next) => {
+  try {
+    const parsed = z.object({ recipientId: z.string().cuid(), subject: z.string().trim().min(1).max(120), body: z.string().trim().min(1).max(10000) }).strict().safeParse(req.body)
+    if (!parsed.success) return res.status(400).json({ error: 'Bitte Empfänger, Betreff und Nachricht prüfen. (Betreff max. 120, Nachricht max. 10.000 Zeichen)' })
+    if (parsed.data.recipientId === req.session.userId) return res.status(400).json({ error: 'Du kannst nur an andere OleOS-Nutzer schreiben.' })
+    const recipient = await prisma.user.findUnique({ where: { id: parsed.data.recipientId }, select: { id: true } })
+    if (!recipient) return res.status(404).json({ error: 'Dieser OleOS-Nutzer wurde nicht gefunden.' })
+    const message = await prisma.mailMessage.create({ data: { ...parsed.data, senderId: req.session.userId }, include: mailInclude })
+    res.status(201).json({ message: mailPayload(message) })
+  } catch (error) { next(error) }
+})
+app.patch('/api/mail/:id/read', sameOrigin, requireCsrf, requireLogin, async (req, res, next) => {
+  try {
+    const updated = await prisma.mailMessage.updateMany({ where: { id: req.params.id, recipientId: req.session.userId, recipientDeletedAt: null, readAt: null }, data: { readAt: new Date() } })
+    if (!updated.count) {
+      const message = await prisma.mailMessage.findFirst({ where: { id: req.params.id, recipientId: req.session.userId, recipientDeletedAt: null }, select: { id: true } })
+      if (!message) return res.status(404).json({ error: 'Nachricht nicht gefunden.' })
+    }
+    res.status(204).end()
+  } catch (error) { next(error) }
+})
+app.delete('/api/mail/:id', sameOrigin, requireCsrf, requireLogin, async (req, res, next) => {
+  try {
+    const folder = req.query.folder === 'sent' ? 'sent' : 'inbox'
+    const where = folder === 'sent'
+      ? { id: req.params.id, senderId: req.session.userId, senderDeletedAt: null }
+      : { id: req.params.id, recipientId: req.session.userId, recipientDeletedAt: null }
+    const data = folder === 'sent' ? { senderDeletedAt: new Date() } : { recipientDeletedAt: new Date() }
+    const removed = await prisma.mailMessage.updateMany({ where, data })
+    if (!removed.count) return res.status(404).json({ error: 'Nachricht nicht gefunden.' })
+    res.status(204).end()
+  } catch (error) { next(error) }
+})
 app.post('/api/social/rooms', sameOrigin, requireCsrf, requireLogin, async (req, res, next) => {
   try {
     const parsed = z.object({ name: z.string().trim().min(2).max(32).regex(/^[\p{L}\p{N} _-]+$/u) }).safeParse(req.body)

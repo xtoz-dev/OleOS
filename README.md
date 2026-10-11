@@ -72,6 +72,7 @@ Express liefert in Produktion das Vite-Build und die API auf demselben Origin au
 
 - `src/App.tsx` — Bootscreen, Discord-Login, Desktop, Startmenü und Fenstersystem.
 - `src/social.tsx` — OleChat, Live-Presence, Netzwerkprofile und Dateifreigaben.
+- `src/mail.tsx` — internes OleOS-Postfach mit Empfang, Versand und Nachrichtenverlauf.
 - `src/audio.ts` — synthetische Systemsounds mit der Web Audio API.
 - `src/style.css` — Win95-inspirierte Oberfläche und Loginansicht.
 - `server/index.js` — Express API, Discord OAuth, Sessions, Socket.IO und Moderation.
@@ -95,6 +96,10 @@ Beim Serverstart legt `server/database.js` fehlende Tabellen an und ergänzt die
 Die Phase-5-Social-Funktionen verwenden Socket.IO auf demselben Origin wie die Website. OleChat enthält die Räume **Allgemein**, **Lounge** und **Hilfe**, unterstützt eigene Räume, Direktnachrichten und einen persistenten Nachrichtenverlauf. Online-Nutzer werden live angezeigt und nach fünf Minuten ohne Aktivität als abwesend markiert.
 
 In der **Netzwerkumgebung** kannst du OleOS-Profile sehen und eigene Textdateien und Bilder mit einem bestimmten Nutzer teilen. Freigaben sind für den Empfänger lesbar, bleiben in deinem Dateisystem und sind nicht öffentlich zugänglich. Geteilte Texte sind auf 1 MB, Bilder auf 2 MB begrenzt.
+
+## OleOS Mail
+
+Unter **Start → OleOS Mail** kannst du anderen registrierten OleOS-Nutzern eine interne Nachricht mit Betreff schicken. Das Postfach bietet Posteingang, Gesendet, ungelesene Nachrichten, Antworten und das Entfernen einer Nachricht aus dem eigenen Ordner. OleOS Mail ist ein internes Nachrichtensystem und versendet keine E-Mails an externe Adressen. Nachrichten werden dauerhaft in der aktiven SQLite- oder Turso-Datenbank gespeichert.
 
 Für Moderationsrechte trägst du in `.env` unter `ADMIN_DISCORD_IDS` eine kommaseparierte Liste der Discord-User-IDs ein. Moderatoren können Chatnachrichten entfernen, Nutzer zeitweise stummschalten sowie sperren und entsperren. Lege die IDs nur serverseitig ab. Räume, Nachrichten, Freigaben und Moderationssperren werden in SQLite oder der konfigurierten Turso-Datenbank gespeichert.
 
