@@ -102,9 +102,10 @@ Für Moderationsrechte trägst du in `.env` unter `ADMIN_DISCORD_IDS` eine komma
 
 GitHub Pages allein reicht nicht: Es veröffentlicht statische Dateien, führt aber weder Express/Socket.IO noch Discord OAuth aus. `render.yaml` stellt OleOS deshalb als kostenlosen Render-Webservice bereit. Render Free kann den Dienst nach Inaktivität schlafen legen; der erste Aufruf danach kann verzögert sein. Weil der kostenlose Container kein dauerhaftes Dateisystem hat, wird für Livebetrieb Turso als persistente Datenbank verwendet. Lokal bleibt SQLite aktiv.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fxtoz-dev%2FOleOS)
+
 1. Erstelle bei Turso eine Datenbank und einen Auth-Token. Die URL und den Token trägst du später in Render als `TURSO_DATABASE_URL` und `TURSO_AUTH_TOKEN` ein.
-2. Lade den OleOS-Quellcode in dein GitHub-Repository.
-3. Verbinde das Repository im Render-Dashboard und erstelle den Blueprint aus `render.yaml`. Ergänze `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `TURSO_DATABASE_URL` und `TURSO_AUTH_TOKEN`; `SESSION_SECRET` wird automatisch erzeugt. Secrets gehören nicht ins Repository.
+2. Klicke oben auf **Deploy to Render**, melde dich bei Render an und prüfe den Blueprint. Ergänze `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `TURSO_DATABASE_URL` und `TURSO_AUTH_TOKEN`; `SESSION_SECRET` wird automatisch erzeugt. Secrets gehören nicht ins Repository.
 4. Nach dem ersten Deploy kopiere die tatsächliche Render-URL. Trage im Discord Developer Portal unter **OAuth2 → Redirects** exakt `https://DEINE-RENDER-URL/api/auth/discord/callback` ein. Der Server leitet sie aus `RENDER_EXTERNAL_URL` ab.
 5. Öffne OleOS über die HTTPS-URL. Für eine eigene Domain setze `APP_ORIGIN` auf deren HTTPS-Adresse und trage auch deren Callback-URL bei Discord ein. Für Moderation kannst du zusätzlich `ADMIN_DISCORD_IDS` setzen.
 
