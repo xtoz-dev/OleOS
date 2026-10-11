@@ -1,0 +1,25 @@
+export async function initializeDatabase(prisma) {
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "User" ("id" TEXT NOT NULL PRIMARY KEY, "discordId" TEXT NOT NULL, "username" TEXT NOT NULL, "displayName" TEXT NOT NULL, "avatarHash" TEXT, "desktopColor" TEXT NOT NULL DEFAULT '#087d7e', "theme" TEXT NOT NULL DEFAULT 'classic', "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL)`)
+  await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "User_discordId_key" ON "User"("discordId")')
+  const userColumns = await prisma.$queryRawUnsafe('PRAGMA table_info("User")')
+  if (!userColumns.some(column => column.name === 'desktopColor')) await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "desktopColor" TEXT NOT NULL DEFAULT '#087d7e'`)
+  if (!userColumns.some(column => column.name === 'theme')) await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "theme" TEXT NOT NULL DEFAULT 'classic'`)
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "FileEntry" ("id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "name" TEXT NOT NULL, "kind" TEXT NOT NULL, "content" TEXT, "parentId" TEXT, "trashedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" DATETIME NOT NULL, CONSTRAINT "FileEntry_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "FileEntry_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "FileEntry" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`)
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "FileEntry_userId_parentId_trashedAt_idx" ON "FileEntry"("userId", "parentId", "trashedAt")')
+  await prisma.$executeRawUnsafe('CREATE TABLE IF NOT EXISTS "Session" ("id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, "sid" TEXT NOT NULL, "data" TEXT NOT NULL, "expires" DATETIME NOT NULL)')
+  await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "Session_sid_key" ON "Session"("sid")')
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "Session_expires_idx" ON "Session"("expires")')
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ChatRoom" ("id" TEXT NOT NULL PRIMARY KEY, "name" TEXT NOT NULL, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`)
+  await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "ChatRoom_name_key" ON "ChatRoom"("name")')
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "ChatMessage" ("id" TEXT NOT NULL PRIMARY KEY, "roomId" TEXT, "senderId" TEXT NOT NULL, "recipientId" TEXT, "senderName" TEXT NOT NULL, "content" TEXT NOT NULL, "deletedAt" DATETIME, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT "ChatMessage_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "ChatRoom" ("id") ON DELETE CASCADE ON UPDATE CASCADE)`)
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "ChatMessage_roomId_createdAt_idx" ON "ChatMessage"("roomId", "createdAt")')
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "ChatMessage_senderId_recipientId_createdAt_idx" ON "ChatMessage"("senderId", "recipientId", "createdAt")')
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "SharedFile" ("id" TEXT NOT NULL PRIMARY KEY, "fileId" TEXT NOT NULL, "ownerId" TEXT NOT NULL, "recipientId" TEXT NOT NULL, "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)`)
+  await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "SharedFile_fileId_recipientId_key" ON "SharedFile"("fileId", "recipientId")')
+  await prisma.$executeRawUnsafe('CREATE INDEX IF NOT EXISTS "SharedFile_recipientId_createdAt_idx" ON "SharedFile"("recipientId", "createdAt")')
+  await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS "UserRestriction" ("id" TEXT NOT NULL PRIMARY KEY, "userId" TEXT NOT NULL, "mutedUntil" DATETIME, "bannedAt" DATETIME, "reason" TEXT, "updatedAt" DATETIME NOT NULL)`)
+  await prisma.$executeRawUnsafe('CREATE UNIQUE INDEX IF NOT EXISTS "UserRestriction_userId_key" ON "UserRestriction"("userId")')
+  for (const [id, name] of [['room-general', 'Allgemein'], ['room-lounge', 'Lounge'], ['room-help', 'Hilfe']]) {
+    await prisma.$executeRawUnsafe('INSERT OR IGNORE INTO "ChatRoom" ("id", "name", "createdAt") VALUES (?, ?, CURRENT_TIMESTAMP)', id, name)
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "oleos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "prisma generate && node server/init-db.js && concurrently -k -n api,web \"node --watch server/index.js\" \"vite --host 0.0.0.0\"",
+    "build": "prisma generate && tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "start": "node server/index.js",
+    "db:generate": "prisma generate",
+    "db:init": "node server/init-db.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-libsql": "6.19.0",
+    "@prisma/client": "6.19.0",
+    "dotenv": "^18.0.7",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^10.0.6",
+    "prisma": "6.19.0",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.5"
+  }
+}

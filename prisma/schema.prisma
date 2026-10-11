@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+  output   = "../server/generated/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(cuid())
+  discordId   String      @unique
+  username    String
+  displayName String
+  avatarHash  String?
+  desktopColor String     @default("#087d7e")
+  theme        String     @default("classic")
+  files        FileEntry[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model FileEntry {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  kind      String
+  content   String?
+  parentId  String?
+  parent    FileEntry?  @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  FileEntry[] @relation("FileTree")
+  trashedAt DateTime?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId, parentId, trashedAt])
+}
+
+model Session {
+  id      Int      @id @default(autoincrement())
+  sid     String   @unique
+  data    String
+  expires DateTime
+
+  @@index([expires])
+}
+
+model ChatRoom {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id          String   @id @default(cuid())
+  roomId      String?
+  room        ChatRoom? @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  senderId    String
+  recipientId String?
+  senderName  String
+  content     String
+  deletedAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([roomId, createdAt])
+  @@index([senderId, recipientId, createdAt])
+}
+
+model SharedFile {
+  id          String   @id @default(cuid())
+  fileId      String
+  ownerId     String
+  recipientId String
+  createdAt   DateTime @default(now())
+
+  @@unique([fileId, recipientId])
+  @@index([recipientId, createdAt])
+}
+
+model UserRestriction {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  mutedUntil DateTime?
+  bannedAt  DateTime?
+  reason    String?
+  updatedAt DateTime @updatedAt
+}
