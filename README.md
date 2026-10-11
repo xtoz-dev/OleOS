@@ -96,7 +96,7 @@ Die Phase-5-Social-Funktionen verwenden Socket.IO auf demselben Origin wie die W
 
 In der **Netzwerkumgebung** kannst du OleOS-Profile sehen und eigene Textdateien und Bilder mit einem bestimmten Nutzer teilen. Freigaben sind für den Empfänger lesbar, bleiben in deinem Dateisystem und sind nicht öffentlich zugänglich. Geteilte Texte sind auf 1 MB, Bilder auf 2 MB begrenzt.
 
-Für Moderationsrechte trägst du in `.env` unter `ADMIN_DISCORD_IDS` eine kommaseparierte Liste der Discord-User-IDs ein. Moderatoren können Chatnachrichten entfernen, Nutzer zeitweise stummschalten sowie sperren und entsperren. Lege die IDs nur serverseitig ab. Räume, Nachrichten, Freigaben und Moderationssperren werden in SQLite gespeichert.
+Für Moderationsrechte trägst du in `.env` unter `ADMIN_DISCORD_IDS` eine kommaseparierte Liste der Discord-User-IDs ein. Moderatoren können Chatnachrichten entfernen, Nutzer zeitweise stummschalten sowie sperren und entsperren. Lege die IDs nur serverseitig ab. Räume, Nachrichten, Freigaben und Moderationssperren werden in SQLite oder der konfigurierten Turso-Datenbank gespeichert.
 
 ## Kostenloses öffentliches Hosting mit GitHub, Render und Turso
 
